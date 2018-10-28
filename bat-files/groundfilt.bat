@@ -1,0 +1,1 @@
+GroundFilter D:/Dropbox/Dropbox/lidar-scaling/Data/bzn_high_topo_6_ground.lda 1 D:/Dropbox/Dropbox/lidar-scaling/Data/las_files/merged/bzn_high_topo_6.las

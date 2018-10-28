@@ -1,0 +1,1 @@
+GridMetrics /strata:[0.5,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60] D:\Dropbox\Dropbox\lidar-scaling\bzn_high_topo_6.dtm 1 25 D:\Dropbox\Dropbox\lidar-scaling\Data\output\bzn_high_topo_6_metrics25.csv D:\Dropbox\Dropbox\lidar-scaling\Data\las_files\merged\bzn_high_topo_6.las

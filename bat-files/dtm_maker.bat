@@ -1,0 +1,1 @@
+GridSurfaceCreate D:\Dropbox\Dropbox\lidar-scaling\bzn_high_topo_6.dtm 1 M M 1 16 2 2 D:\Dropbox\Dropbox\lidar-scaling\Data/bzn_high_topo_6_ground.las
