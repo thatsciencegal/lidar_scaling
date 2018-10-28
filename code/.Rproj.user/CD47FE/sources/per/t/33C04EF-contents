@@ -1,0 +1,405 @@
+#################################################
+#################################################
+#Lab 5: spatial dependence
+#################################################
+#################################################
+
+#Note: change the directory for reading the file, depending on where you save it
+
+setwd("C:\\Teaching\\Landscape Ecology Grads\\Labs\\2017\\Lab5-geostats\\Lab5-data")
+
+#Return to Plot 4 (data used in Ch 4)
+#Load the data into R:
+matrix<-read.csv('matrix_plot10.csv', header=T)
+
+head(matrix)
+coords<-cbind(matrix$East,matrix$North)
+colnames(coords)<-c("East","North")
+
+#create distance matrix
+distmat=as.matrix(dist(coords))
+
+dim(distmat)
+max(distmat)
+
+#max.dist=maximum distance considered in correlogram/variogram (~1/2 to 2/3 total dist) 
+maxdist=2/3*max(distmat)
+
+#plot grid of points
+plot(matrix[,2:3])
+plot(matrix[,2]~matrix[,3], 
+     pch=21, cex=1.2,
+     bg=gray.colors(12)[cut(matrix[,4],breaks = 12)])
+
+#plot distribution of vegetation height (in cm)
+hist(matrix[,"Height"], xlab="Vegetation height (cm)",
+     main="histogram of vegetation height")
+
+
+#################################################
+#CORRELOGRAMS
+#################################################
+
+install.packages("spdep",dependencies=TRUE)
+install.packages("pgirmess",dependencies=TRUE)
+library(spdep)
+library(pgirmess)
+
+#--------------------------------#
+#pgirmess, normal approximation
+#--------------------------------#
+
+correlog.pgirmess<-correlog(coords, matrix$Height,method="Moran", 
+                            nbclass=14,alternative = "two.sided") 
+
+#provides the p values for each distance class
+round(correlog.pgirmess,3)  
+
+#provides correlogram plot, with significant distances in red
+plot(correlog.pgirmess) 
+abline(h=0)
+
+#--------------------------------------#
+#correlograms (smoothed) in ncf: 
+#can use splines with bootstrapping
+#--------------------------------------#
+
+#must detach pgirmess 
+#b/c ncf has same function (correlog) as ncf
+detach(package:pgirmess)
+install.packages("ncf")
+library(ncf)
+
+#correlogram with randomization test
+#note that ncf::correlog signifies that we want 
+#the correlog function from ncf not pgirmess (in case you didn't detach it)
+correlog.ncf <- ncf::correlog(x = matrix$East, y = matrix$North, z = matrix$Height, 
+                         increment=5, resamp=99)
+plot(correlog.ncf)
+abline(h=0)
+
+#spline correlogram with 95% pointwise bootstrap confidence intervals
+spline.corr <- spline.correlog(x = matrix$East, y = matrix$North, z = matrix$Height, 
+                               xmax = maxdist, resamp=99, type="boot") 
+
+#plot shows point-wise 99% CIs from bootstrap:
+plot.spline.correlog(spline.corr)
+
+#-------------------------------------------------------#
+#Correlograms in spdep 
+#more flexible and useful for binary data
+#-------------------------------------------------------#
+
+library(spdep)
+
+#make a neighborhood list to include. d1 is minimum distance, d2 is max distance
+neigh <- dnearneigh(x=coords, d1=0, d2=3, longlat=F)
+
+#plot the neighorhood; note if d2=2, what would the pattern be?
+plot(neigh,coordinates(coords))
+
+#create weights for the neighbors. We will use row-standardized weights (W)
+#zero.policy allows the function to work if there are points that don't fall into this category 
+
+wts <- nb2listw(neighbours=neigh, style='W', zero.policy=T)
+
+#contrast moran's i with normal versus Monte Carlo permutation test 
+#monte carlo useful for data not normally distributed
+
+mor.mc <- moran.mc(x=matrix$Height, listw=wts, nsim=99, zero.policy=T) #monte carlo
+mor.norm <- moran.test(x=matrix$Height, listw=wts, randomisation=F, zero.policy=T)#normal approximation
+
+mor.mc
+mor.norm
+#------------------------------------------------------------#
+#correlogram: 
+#repeat above with a for loop using consecutive lag distances
+#------------------------------------------------------------#
+
+#first, create an array for storing data
+correlog.sp<-data.frame(dist=seq(5,maxdist,by=5),
+                        Morans.i=NA,Null.lcl=NA,Null.ucl=NA,Pvalue=NA)
+head(correlog.sp)
+
+#then do a for loop to calculate Moran's I for lag distances 
+for (i in 1:nrow(correlog.sp)){
+  
+  d.start<-correlog.sp[i,"dist"]-5
+  d.end<-correlog.sp[i,"dist"]
+  
+  neigh <- dnearneigh(x=coords, d1=d.start, d.end, longlat=F)
+  wts <- nb2listw(neighbours=neigh, style='W', zero.policy=T)
+  mor.i <- moran.mc(x=matrix$Height, listw=wts, nsim=99, alternative="greater", zero.policy=T)	
+  
+  #summarize results from spdep
+  correlog.sp[i, 1]<-(d.end+d.start)/2              #mean dist
+  correlog.sp[i, 2]<-mor.i$statistic 								#observed moran's i
+  correlog.sp[i, 3]<-quantile(mor.i$res, probs = 0.025,na.rm = TRUE)#lower null envelope	
+  correlog.sp[i, 4]<-quantile(mor.i$res, probs = 0.975,na.rm = TRUE)#upper null envelope
+  correlog.sp[i, 5]<-mor.i$p.value									#p-value for moran's i at that distance category
+}
+
+#Take data from array to store for plotting
+
+#plot correlogram
+plot(y=correlog.sp$Morans.i,x=correlog.sp$dist, xlab="Lag Distance(m)", ylab="Moran's I", ylim=c(-0.3,0.3)) #ylim provides limit on y-axis between -1 and 1
+abline(h=0)#0 reference
+lines(correlog.sp$dist, correlog.sp$Null.lcl,col = "red")	#add the null lcl to the plot
+lines(correlog.sp$dist, correlog.sp$Null.ucl,col = "red")	#add the null ucl to the plot
+
+
+#############################################
+#variograms
+#############################################
+
+#create a geoR object for analysis
+install.packages("geoR")
+library(geoR)
+geo.veg<-as.geodata(cbind(matrix[,2:4]))
+
+#To get a feel for the data, plot:
+plot(geo.veg)
+
+#Empirical semivariograms can be calculated with geoR with the function variog: 
+emp<-variog(geo.veg,max.dist=maxdist)
+plot(emp)
+
+#standardize breaks
+emp<-variog(geo.veg,max.dist=maxdist, breaks=c(seq(0,maxdist,by=3)))
+plot(emp) 
+
+#To obtain a directional variogram in each cardinal direction (4 variograms) to check for anisotropy, type:
+emp4<-variog4(geo.veg,max.dist=maxdist)
+plot(emp4, legend=FALSE)
+plot(emp4)
+
+#some theoretical variograms 
+#we need to provide initial values for the partial sill and range 
+#(looking at empirical variogram)
+mlexp<-likfit(geo.veg,cov.model="exp",ini=c(500,15))
+mlsph<-likfit(geo.veg,cov.model="sph",ini=c(500,15))
+mlgauss<-likfit(geo.veg,cov.model="gaussian",ini=c(500,2))
+#mlmatern<-likfit(geo.veg,cov.model="matern",ini=c(500,15), kappa=0.5)#kappa 0.5 = exponential
+#mlpower<-likfit(geo.veg,cov.model="powered.exponential",ini=c(500,15))
+
+summary(mlexp)  
+summary(mlsph)  
+summary(mlgauss)
+AIC(mlexp,mlsph,mlgauss)
+
+#Overlay the theoretical variogram on top of the empirical
+
+plot(emp)
+lines(mlexp, col="blue")
+lines(mlsph, col="red")
+lines(mlgauss, col="gray50")
+str(mlexp)
+
+#In geoR, we can obtain confidence envelopes of complete spatial randomness, 
+#given the data, using randomizations (Monte Carlo permutation tests). 
+
+emp.env<-variog.mc.env(geo.veg,obj.var=emp)
+plot(emp,envelope=emp.env)
+lines(mlexp, col="blue")
+lines(mlsph, col = "red")
+lines(mlgauss, col = "gray50")
+#---------------------------------------------#
+#kriging to produce an interpolated map:
+#---------------------------------------------#
+
+#create new grid with 0.5m intervals using expand.grid function
+new.grid.0.5m<-expand.grid(seq(0,max(matrix$East), by=0.5),seq(0,max(matrix$North), by=0.5))
+plot(new.grid.0.5m)
+
+#make kriged surface: 
+#plug in the parameter estimates from the variogram modeling with cov.pars; first parameter is partial sill, second is range
+mlexp$nugget
+mlexp$cov.pars[1]
+mlexp$cov.pars[2]
+
+krig.exp<-krige.conv(geo.veg,locations=new.grid.0.5m, 
+                       krige=krige.control(cov.pars=c(mlexp$cov.pars[1],mlexp$cov.pars[2]),nugget = mlexp$nugget, 
+                                           cov.model="exp",type.krige="OK"))
+
+hist(krig.exp$predict)
+hist(matrix$Height)
+krig.exp$krige.var
+
+#get the prediction values for the krigged surface 
+image(krig.exp, main="krigged estimates")
+image(krig.exp, val=sqrt(krig.exp$krige.var), main="kriging SE")
+
+new.grid.0.5m<-expand.grid(seq(0,max(matrix$East), by=0.5),seq(0,max(matrix$North), by=0.5))
+plot(new.grid.0.5m)
+
+#make kriged surface: 
+#plug in the parameter estimates from the variogram modeling with cov.pars; first parameter is partial sill, second is range
+mlgauss$nugget
+mlgauss$cov.pars[1]
+mlgauss$cov.pars[2]
+
+krig.gauss<-krige.conv(geo.veg,locations=new.grid.0.5m, 
+                     krige=krige.control(cov.pars=c(mlgauss$cov.pars[1],mlgauss$cov.pars[2]),nugget = mlgauss$nugget, 
+                                         cov.model="exp",type.krige="OK"))
+
+hist(krig.gauss$predict)
+hist(matrix$Height)
+krig.gauss$krige.var
+
+#get the prediction values for the krigged surface 
+image(krig.gauss, main="krigged estimates")
+image(krig.gauss, val=sqrt(krig.exp$krige.var), main="kriging SE")
+
+image(krig.gauss-krig.exp)
+
+quant <- krig.gauss-krig.exp
+
+##########################################
+#ADVANCED: SIMULATING SPATIAL DATA
+##########################################
+
+#------------------------------------#
+#USING RANDOM FIELDS
+#------------------------------------#
+install.packages("RandomFields")
+library(RandomFields)
+
+#variogram models to simulate
+model.exp = RMexp(var=mlexp$cov.pars[1], scale=mlexp$cov.pars[2])+
+            RMnugget(var=mlexp$nugget)+RMtrend(mean=mean(matrix$Height)) # and mean
+
+dimx=1:50
+dimy=1:50
+
+#simulate
+sim.exp <- RFsimulate(model = model.exp, x=dimx, y=dimy)#creates spatial grid
+str(sim.exp)
+sim.exp.mat =as.matrix(sim.exp)
+
+#plot with image
+image(dimx, dimy, sim.exp.mat,xlab="x-coordinate", ylab="y-coordinate",
+      main="Random Map (Exponential Variogram)")
+
+#plot with raster
+RMexp.grid<-raster(sim.exp)
+plot(RMexp.grid)
+
+
+
+############################################
+#Wavelets: Multiscale decomposition
+############################################
+install.packages("waveslim")
+install.packages("fields")#for plotting
+library(waveslim)
+library(fields)
+
+#DWT: Discrete Wavelet Transform 
+library(reshape2)
+matrix.mat<-acast(matrix[,2:4], East~North, value.var="Height")
+dim(matrix.mat)
+
+x.dwt <- dwt.2d(matrix.mat[1:16,1:16], 'haar', J=4)       
+str(x.dwt)
+
+image(1:16, 1:16, matrix.mat[1:16,1:16], xlab="", ylab="",
+      main="Original")
+image(1:16, 1:16, idwt.2d(x.dwt), xlab="", ylab="",
+      main="Wavelet Reconstruction")
+
+#three bands of variation for haar transform:
+str(x.dwt)
+#horizontal direction (y-axis variation)
+x.dwt$LH1
+
+#detailed image in vertical direction (variation along x-axis)
+x.dwt$HL1
+
+#diagonal direction
+x.dwt$HH1
+
+
+#------------------------------------------#
+#Create scalogram:  
+#------------------------------------------#
+
+#sum.sq<-function(x) sum(x^2)
+#sapply(x.dwt[[1]], sum.sq)
+
+#Sum the wavelet spectrums
+Total.var <-  (sum(x.dwt$LH1^2 + x.dwt$HL1^2 + x.dwt$HH1^2)
+               + sum(x.dwt$LH2^2 + x.dwt$HL2^2 + x.dwt$HH2^2) 
+               + sum(x.dwt$LH3^2 + x.dwt$HL3^2 + x.dwt$HH3^2) 
+               + sum(x.dwt$LH4^2 + x.dwt$HL4^2 + x.dwt$HH4^2))
+
+
+#proportional variance
+x.lev.1  <- (sum(x.dwt$LH1^2  + x.dwt$HL1^2  + x.dwt$HH1^2))  / Total.var
+x.lev.2  <- (sum(x.dwt$LH2^2  + x.dwt$HL2^2  + x.dwt$HH2^2))  / Total.var
+x.lev.3  <- (sum(x.dwt$LH3^2  + x.dwt$HL3^2  + x.dwt$HH3^2))  / Total.var
+x.lev.4  <- (sum(x.dwt$LH4^2  + x.dwt$HL4^2  + x.dwt$HH4^2))  / Total.var
+
+var.all.dwt <- c(x.lev.1, x.lev.2, x.lev.3, x.lev.4)
+sum(var.all.dwt)
+
+#Scalogram: plotting global Wavelet spectrum profiles
+plot (var.all.dwt, pch=21, type="b", lwd=1, ylab="Average Variance", xlab="Scale")
+
+#Map Wavelet values according to scales
+par(pty="s")#set aspect to square for plotting square grid
+image.plot((x.dwt$LH1^2+x.dwt$HL1^2+x.dwt$HH1^2), axes=F)
+image.plot((x.dwt$LH2^2+x.dwt$HL2^2+x.dwt$HH2^2), axes=F)
+image.plot((x.dwt$LH3^2+x.dwt$HL3^2+x.dwt$HH3^2), axes=F)
+
+############################################
+#Eigenvector Methods (Here PCNM)
+############################################
+
+install.packages("vegan")
+library(vegan)
+
+#PCNM on distance matrix
+xypcnm <- pcnm(dist(coords))
+xypcnm$threshold
+
+str(xypcnm)
+
+#first eigenvector
+xypcnm$vectors[,1]
+
+#Map PCNM at different scales
+#use ade4 or ggplot2
+install.packages("ade4")
+library(ade4)
+s.value(coords, xypcnm$vectors[,1] ,  clegend=0, sub="PCNM 1")
+s.value(coords, xypcnm$vectors[,10],  clegend=0, sub="PCNM 10")
+s.value(coords, xypcnm$vectors[,50],  clegend=0, sub="PCNM 50")
+s.value(coords, xypcnm$vectors[,100], clegend=0, sub="PCNM 100")
+
+#with ggplot2
+library(ggplot2)
+height.vectors<-data.frame(cbind(East=matrix$East,North=matrix$North,
+                                 height=matrix$Height,xypcnm$vectors))
+
+ggplot(height.vectors, aes(East, North)) + geom_tile(aes(fill=PCNM1))+ scale_fill_gradient2(low = "blue", high = "red", mid = "lightyellow", midpoint = 0)+theme_bw()
+ggplot(height.vectors, aes(East, North)) + geom_tile(aes(fill=PCNM10))+ scale_fill_gradient2(low = "blue", high = "red", mid = "lightyellow", midpoint = 0)+theme_bw()
+ggplot(height.vectors, aes(East, North)) + geom_tile(aes(fill=PCNM50))+ scale_fill_gradient2(low = "blue", high = "red", mid = "lightyellow", midpoint = 0)+theme_bw()
+ggplot(height.vectors, aes(East, North)) + geom_tile(aes(fill=PCNM100))+ scale_fill_gradient2(low = "blue", high = "red", mid = "lightyellow", midpoint = 0)+theme_bw()
+
+
+#Determine which PCNMs contribute to explain the spatial pattern of the data
+#by using them as predictors in a linear regression
+#use a forward selection based on BIC, which is more parsimonious than AIC
+
+library(MASS)
+names(height.vectors)
+xypcnm.int = lm(height~1, data=height.vectors) 
+xypcnm.full = formula(lm(height~.,data=height.vectors[,3:ncol(height.vectors)]))
+
+#steps=5: only retain first 5 eigenvectors
+xypcnm.for = stepAIC(xypcnm.int,scope= xypcnm.full, 
+                     direction = "forward", data=height.vectors, steps=5,
+                     k = log(nrow(height.vectors))) #forward selection with BIC
+
+xypcnm.for$anova
+summary(xypcnm.for)

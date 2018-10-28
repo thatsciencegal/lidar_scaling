@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "# load appropriate libraries\nlibrary(lidR)\nlibrary(abind)\n\n# set data paths\nin.path = \"../Data/las_files/merged\"\nout.path <- \"../Data/output\"\n\n# list all of the lidar files to be used\nfile.names <- dir(in.path, pattern = \".las\", full.names = TRUE)\n\n# vector of grid sizes for lidar metrics analysis\nraster_sizes <- c(5, 10, 15, 25, 30, 50, 60, 100, 120, 250, 500, 1000)\n\n# Calculate the lidar metrics\nfor(i in seq_along(file.names)){\n  # read in the current file\n  current.file <- file.names[i]\n  print(paste0(\"Working on: \", current.file))\n  lidar_in <- readLAS(current.file)\n  \n  #Separate the header info and point cloud data\n  lidar_in_head <- lidar_in@header\n  lidar_in_data <- lidar_in@data\n  \n  #Bootstrap the lidar data\n  n_iter <- 1000\n  lidar_boot <- lidar_in_data\n  for(i in 1:n_iter){\n    x <- length(lidar_in_data$X)\n    bootclasses <- lapply(1:n_iter, function(i)\n      lidar_in_data[sample(x, x, replace=T), ])\n    bootd <- as.data.frame(bootclasses[i])\n    lidar_boot <- abind(lidar_boot, bootd, along = n_iter + 1)\n  }\n  \n  #Extract each bootstrap from the array\n  for(i in 1:n_iter){\n    assign(paste0(\"lidar_boot_df_\",i),as.data.frame(lidar_boot[,,i]))\n  }\n  \n  #Make a list of the bootstrapped data frames\n  \n  #For each data frame:\n  #calculate the dtm\n  dtm = grid_terrain(lidar_in, res = 5, method = \"knnidw\")\n  print(\"DTM finished\")\n  #remove ground points\n  las_norm <- lasnormalize(lidar_in, dtm)\n  print(\"Running normalized metrics\")\n  rm(lidar_in)\n  #normalize all points to 0\n  las_norm@data[Z  < 0, Z := 0]\n  minx <- las_norm@header@data[\"Min X\"]\n  miny <- las_norm@header@data[\"Min Y\"]\n  minx <- as.numeric(minx)\n  miny <- as.numeric(miny)\n  \n  las_filt <- las_norm %>% lasfilter(Z < 70)\n  rm(las_norm)\n  \n  for(j in seq_along(raster_sizes)){\n    # calculate the lidar metrics for each spatial resolution\n    print(paste0(\"Working on grid size: \", raster_sizes[j]))\n    normalized_metrics <- las_filt %>% grid_metrics(.stdmetrics, res = raster_sizes[j], start=c(minx, miny))\n    \n    # write out the raw data as a csv\n    write.csv(normalized_metrics, file=paste0(\"../data/output/filtered_output/normalized_metrics_\", i, \"_size_\", raster_sizes[j], \".csv\"))\n    \n  }\n  \n}",
+    "created" : 1510173649129.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2763994074",
+    "id" : "3BF3C348",
+    "lastKnownWriteTime" : 1510249728,
+    "last_content_update" : 1510249728700,
+    "path" : "~/lidar-scaling/code/lidar_bootstrap.R",
+    "project_path" : "lidar_bootstrap.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

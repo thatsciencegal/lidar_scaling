@@ -1,0 +1,185 @@
+#load libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(reshape2)
+
+#read data
+powell_data <- read.csv("lake_powell_clean.csv")
+
+#change format on dates
+powell_data_clean <- separate(powell_data, Date, into = c("Day", "Month", "Year"), sep = "-")
+
+#read precipitation data
+page_precip <- read.csv("page_precipitation.csv")
+
+#change date format on precipitation data
+precip_data_clean <- separate(page_precip, DATE, into = c("Month", "Day", "Year"), sep = "/")
+
+#change precipitation months from numbers to strings
+precip_data_clean$Month[precip_data_clean$Month == 1] <- "Jan"
+precip_data_clean$Month[precip_data_clean$Month == 2] <- "Feb"
+precip_data_clean$Month[precip_data_clean$Month == 3] <- "Mar"
+precip_data_clean$Month[precip_data_clean$Month == 4] <- "Apr"
+precip_data_clean$Month[precip_data_clean$Month == 5] <- "May"
+precip_data_clean$Month[precip_data_clean$Month == 6] <- "Jun"
+precip_data_clean$Month[precip_data_clean$Month == 7] <- "Jul"
+precip_data_clean$Month[precip_data_clean$Month == 8] <- "Aug"
+precip_data_clean$Month[precip_data_clean$Month == 9] <- "Sep"
+precip_data_clean$Month[precip_data_clean$Month == 10] <- "Oct"
+precip_data_clean$Month[precip_data_clean$Month == 11] <- "Nov"
+precip_data_clean$Month[precip_data_clean$Month == 12] <- "Dec"
+
+#change years on Powell data to four numbers
+powell_data_clean$Year[powell_data_clean$Year == 63] <- 1963
+powell_data_clean$Year[powell_data_clean$Year == 64] <- 1964
+powell_data_clean$Year[powell_data_clean$Year == 65] <- 1965
+powell_data_clean$Year[powell_data_clean$Year == 66] <- 1966
+powell_data_clean$Year[powell_data_clean$Year == 67] <- 1967
+powell_data_clean$Year[powell_data_clean$Year == 68] <- 1968
+powell_data_clean$Year[powell_data_clean$Year == 69] <- 1969
+powell_data_clean$Year[powell_data_clean$Year == 70] <- 1970
+powell_data_clean$Year[powell_data_clean$Year == 71] <- 1971
+powell_data_clean$Year[powell_data_clean$Year == 72] <- 1972
+powell_data_clean$Year[powell_data_clean$Year == 73] <- 1973
+powell_data_clean$Year[powell_data_clean$Year == 74] <- 1974
+powell_data_clean$Year[powell_data_clean$Year == 75] <- 1975
+powell_data_clean$Year[powell_data_clean$Year == 76] <- 1976
+powell_data_clean$Year[powell_data_clean$Year == 77] <- 1977
+powell_data_clean$Year[powell_data_clean$Year == 78] <- 1978
+powell_data_clean$Year[powell_data_clean$Year == 79] <- 1979
+powell_data_clean$Year[powell_data_clean$Year == 80] <- 1980
+powell_data_clean$Year[powell_data_clean$Year == 81] <- 1981
+powell_data_clean$Year[powell_data_clean$Year == 82] <- 1982
+powell_data_clean$Year[powell_data_clean$Year == 83] <- 1983
+powell_data_clean$Year[powell_data_clean$Year == 84] <- 1984
+powell_data_clean$Year[powell_data_clean$Year == 85] <- 1985
+powell_data_clean$Year[powell_data_clean$Year == 86] <- 1986
+powell_data_clean$Year[powell_data_clean$Year == 87] <- 1987
+powell_data_clean$Year[powell_data_clean$Year == 88] <- 1988
+powell_data_clean$Year[powell_data_clean$Year == 89] <- 1989
+powell_data_clean$Year[powell_data_clean$Year == 90] <- 1990
+powell_data_clean$Year[powell_data_clean$Year == 91] <- 1991
+powell_data_clean$Year[powell_data_clean$Year == 92] <- 1992
+powell_data_clean$Year[powell_data_clean$Year == 93] <- 1993
+powell_data_clean$Year[powell_data_clean$Year == 94] <- 1994
+powell_data_clean$Year[powell_data_clean$Year == 95] <- 1995
+powell_data_clean$Year[powell_data_clean$Year == 96] <- 1996
+powell_data_clean$Year[powell_data_clean$Year == 97] <- 1997
+powell_data_clean$Year[powell_data_clean$Year == 98] <- 1998
+powell_data_clean$Year[powell_data_clean$Year == 99] <- 1999
+powell_data_clean$Year[powell_data_clean$Year == "00"] <- 2000
+powell_data_clean$Year[powell_data_clean$Year == "01"] <- 2001
+powell_data_clean$Year[powell_data_clean$Year == "02"] <- 2002
+powell_data_clean$Year[powell_data_clean$Year == "03"] <- 2003
+powell_data_clean$Year[powell_data_clean$Year == "04"] <- 2004
+powell_data_clean$Year[powell_data_clean$Year == "05"] <- 2005
+powell_data_clean$Year[powell_data_clean$Year == "06"] <- 2006
+powell_data_clean$Year[powell_data_clean$Year == "07"] <- 2007
+powell_data_clean$Year[powell_data_clean$Year == "08"] <- 2008
+powell_data_clean$Year[powell_data_clean$Year == "09"] <- 2009
+powell_data_clean$Year[powell_data_clean$Year == 10] <- 2010
+powell_data_clean$Year[powell_data_clean$Year == 11] <- 2011
+powell_data_clean$Year[powell_data_clean$Year == 12] <- 2012
+powell_data_clean$Year[powell_data_clean$Year == 13] <- 2013
+powell_data_clean$Year[powell_data_clean$Year == 14] <- 2014
+powell_data_clean$Year[powell_data_clean$Year == 15] <- 2015
+powell_data_clean$Year[powell_data_clean$Year == 16] <- 2016
+powell_data_clean$Year[powell_data_clean$Year == 17] <- 2017
+
+#calculate the daily precipitation mean for all weather stations
+precip_data_grouped <- group_by(precip_data_clean, Year, Month, Day) %>% 
+  summarise(precip = mean(PRCP))
+
+#join the Powell and precipitation data sets, convert all values to acre-feet
+total_powell_data <- left_join(powell_data_clean, precip_data_grouped, by = c("Year" = "Year", "Month" = "Month", "Day" = "Day")) %>% 
+  mutate(precip_af = precip/12 * 5280 * 5280 * 254.1 / 43560) %>% 
+  mutate(inflow_af = Inflow....cfs. / 43560 * 86400) %>% 
+  mutate(total_release_af = Total.Release..cfs. / 43560 * 86400) %>% 
+  mutate(unreg_inflow_af = Unregulated.Inflow.....cfs. / 43560 * 86400) %>% 
+  mutate(storage_calc = inflow_af + precip_af - total_release_af - Evaporation..af.) %>% 
+  mutate(sum_storage = cumsum(ifelse(is.na(storage_calc), 0, storage_calc)))
+
+#summarize Powell data by year and limit it to after 2000  
+powell_data_2000_year_summary <- group_by(total_powell_data, Year) %>% 
+  filter(Year >= 2000) %>% 
+  summarise(storage_calc_mean = mean(storage_calc, na.rm = TRUE), storage_mean = mean(Storage..af., na.rm = TRUE),
+            mean_precip = mean(precip_af, na.rm = TRUE), mean_inflow_af = mean(inflow_af, na.rm = TRUE), 
+            mean_total_release_af = mean(total_release_af, na.rm = TRUE), mean_unreg_inflow_af = mean(unreg_inflow_af, na.rm = TRUE),
+            mean_evaporation_af = mean(Evaporation..af., na.rm = TRUE), mean_storage_calc = mean(sum_storage),
+            elevation = mean(Elevation..feet.))
+
+#summarize Powell data by year, including all years
+powell_data_year_summary <- group_by(total_powell_data, Year) %>% 
+  summarise(storage_calc_mean = mean(storage_calc, na.rm = TRUE), storage_mean = mean(Storage..af., na.rm = TRUE),
+            mean_precip = mean(precip_af, na.rm = TRUE), mean_inflow_af = mean(inflow_af, na.rm = TRUE), 
+            mean_total_release_af = mean(total_release_af, na.rm = TRUE), mean_unreg_inflow_af = mean(unreg_inflow_af, na.rm = TRUE),
+            mean_evaporation_af = mean(Evaporation..af., na.rm = TRUE), mean_storage_calc = mean(sum_storage),
+            mean_storage = mean(Storage..af.), elevation = mean(Elevation..feet.))
+
+
+#summarize Powell data by month, order months by calendar
+powell_data_month_summary <- group_by(total_powell_data, Month) %>% 
+  summarise(storage_calc_mean = mean(storage_calc, na.rm = TRUE), storage_mean = mean(Storage..af., na.rm = TRUE),
+            mean_precip = mean(precip_af, na.rm = TRUE), mean_inflow_af = mean(inflow_af, na.rm = TRUE), 
+            mean_total_release_af = mean(total_release_af, na.rm = TRUE), mean_unreg_inflow_af = mean(unreg_inflow_af, na.rm = TRUE), 
+            mean_evaporation_af = mean(Evaporation..af., na.rm = TRUE), mean_storage = mean(Storage..af., na.rm = TRUE),
+            mean_storage_calc = mean(sum_storage)) %>% 
+  mutate(Month = factor(Month, c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))) %>% 
+  arrange(Month)
+
+#plot monthly summary of variables included in storage calculation
+powell_data_month_summary%>%
+  ggplot(.,aes(x=Month))+
+  geom_line(aes(y=mean_precip, colour = "Precipitation"),group=1, size = 1)+
+  geom_line(aes(y=mean_inflow_af, colour = "Inflow"), group=1, size = 1) +
+  geom_line(aes(y = mean_total_release_af, colour = "TotalRelease"), group =1, size = 1) +
+  geom_line(aes(y = mean_evaporation_af, colour = "Evaporation"), group = 1, size = 1) +
+  scale_colour_manual("",
+                      breaks = c("Precipitation", "Evaporation", "Inflow", "TotalRelease"),
+                      values = cbbPalette) +
+  ylab("Mean volume (af)")
+
+#plot mean monthly storage and calculated storage
+powell_data_month_summary %>% 
+  ggplot(., aes(x = Month)) +
+  geom_line(aes(y = mean_storage, color = "ReportedStorage"), group = 1, size = 1) +
+  geom_line(aes(y = mean_storage_calc, color = "CalculatedStorage"), group = 1, size = 1) +
+  scale_colour_manual("",
+                     breaks = c("ReportedStorage", "CalculatedStorage"),
+                     values = c("#0072B2", "#009E73")) +
+  ylab("Mean Storage (af)")
+
+#plot mean yearly storage and calculated storage
+powell_data_year_summary %>% 
+  ggplot(., aes(x = Year)) +
+  geom_line(aes(y = mean_storage, color = "ReportedStorage"), group = 1, size = 1) +
+  geom_line(aes(y = mean_storage_calc, color = "CalculatedStorage"), group = 1, size = 1) +
+  scale_colour_manual("",
+                      breaks = c("ReportedStorage", "CalculatedStorage"),
+                      values = c("#0072B2", "#009E73")) +
+  ylab("Mean Storage (af)")
+
+#plot the difference between calculated and reported storage (monthly)
+powell_data_month_summary %>% 
+  ggplot(., aes(x = Month)) +
+  geom_line(aes(y = mean_storage_calc -mean_storage), group = 1, size = 1) +
+  ylab("Difference in volume (af)")
+
+#plot the difference between calculated and reported storage (yearly)
+powell_data_year_summary %>% 
+  ggplot(., aes(x = Year)) +
+  geom_line(aes(y = mean_storage_calc -mean_storage), group = 1, size = 1) +
+  ylab("Difference in volume (af)")
+
+#plot summary of variables included in storage calculation from 2000 onwards
+#powell_data_2000_year_summary%>%
+  #ggplot(.,aes(x=Month))+
+  #geom_line(aes(y=mean_precip, colour = "Precipitation"),group=1, size = 1)+
+  #geom_line(aes(y=mean_inflow_af, colour = "Inflow"), group=1, size = 1) +
+  #geom_line(aes(y = mean_total_release_af, colour = "TotalRelease"), group =1, size = 1) +
+  #geom_line(aes(y = mean_evaporation_af, colour = "Evaporation"), group = 1, size = 1) +
+  #scale_colour_manual("",
+                      #breaks = c("Precipitation", "Evaporation", "Inflow", "TotalRelease"),
+                      #values = cbbPalette) +
+  #ylab("Mean volume (af)")

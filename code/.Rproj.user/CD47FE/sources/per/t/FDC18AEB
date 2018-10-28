@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1524516950708.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4283779419",
+    "id" : "FDC18AEB",
+    "lastKnownWriteTime" : 1510173645,
+    "last_content_update" : 1510173645,
+    "path" : "D:/Dropbox/Dropbox/lidar-scaling/code/lidar_scaling.R",
+    "project_path" : "lidar_scaling.R",
+    "properties" : {
+        "cursorPosition" : "49,1",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "library(lidR)\nlibrary(ggplot)\n\nin.path = \"../Data/las_files/merged\"\nfile.names <- dir(in.path, pattern = \".las\", full.names = TRUE)\n\ncurrent.file <- file.names[24]\nprint(current.file)\nlidar_in <- readLAS(current.file)\ndtm = grid_terrain(lidar_in, res = 5, method = \"knnidw\")\nprint(\"DTM finished\")\nlas_norm <- lasnormalize(lidar_in, dtm)\nlas_norm@data[Z  < 0, Z := 0]\n\nplot(lidar_in, colorPalette = height.colors(100), trim = 0.99)\n\ngrid_metrics3d(las_norm, entropy(Z)) %>% plot(trim = 0.99)\nggsave(\"bzn_low_topo_site_3.svg\", plot = last_plot(), units = \"in\", width = 9, height = 6, dpi = 600)\n\nplot(las_norm, trim = 0.99)\n",
+    "created" : 1500586647960.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3866346386",
+    "id" : "1425FFAD",
+    "lastKnownWriteTime" : 1506645296,
+    "last_content_update" : 1506645296996,
+    "path" : "~/lidar-scaling/code/lidar_plot.R",
+    "project_path" : "lidar_plot.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

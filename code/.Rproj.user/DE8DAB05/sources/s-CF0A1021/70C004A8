@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1524664293814.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "70C004A8",
+    "lastKnownWriteTime" : 1524686159,
+    "last_content_update" : 1524686159,
+    "path" : "C:/Users/christineswanson/Dropbox/lidar-scaling/code/lidar_semivariograms.R",
+    "project_path" : "lidar_semivariograms.R",
+    "properties" : {
+        "cursorPosition" : "61,35",
+        "scrollLine" : "42"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

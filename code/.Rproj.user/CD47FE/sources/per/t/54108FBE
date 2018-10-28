@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1524516952574.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3866346386",
+    "id" : "54108FBE",
+    "lastKnownWriteTime" : 1506645296,
+    "last_content_update" : 1506645296,
+    "path" : "D:/Dropbox/Dropbox/lidar-scaling/code/lidar_plot.R",
+    "project_path" : "lidar_plot.R",
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1524755448379.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3560236539",
+    "id" : "DF454822",
+    "lastKnownWriteTime" : 1530147367,
+    "last_content_update" : 1530147367953,
+    "path" : "D:/Dropbox/Dropbox/lidar-scaling/code/lidar_spdep.R",
+    "project_path" : "lidar_spdep.R",
+    "properties" : {
+        "cursorPosition" : "19,0",
+        "scrollLine" : "8",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

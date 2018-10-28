@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "## Size matters: scaling effects on LiDAR interpretation in a neotropical rainforest\n## Code written by Christine Swanson\n## July 10, 2017\n\n# This code is to write out the data to a summary csv\n\n# set data paths\nin.path <- \"../Data/output/filtered_output\"\n\n# list all of the lidar files to be used\noutput.file.names <- dir(in.path, pattern = \".csv\", full.names = TRUE)\n\nlidar.data.matrix <- matrix(ncol = 8, nrow = 720)\n\nlidar.data.names <- c(\"tile\", \"resolution\", \"topo\", \"max_height\", \"mean_height\", \"rugosity\", \n                      \"vertical_diversity\", \"openness\") \n\nraster_sizes <- c(10, 1000, 120, 15, 250, 30, 5, 500, 60)\n\nfor(i in seq_along(output.file.names)){\n  # read in the current file\n  current.file <- output.file.names[i]\n  lidar.data <- read.csv(current.file)\n  \n  # split the file name into different parts\n  file.split <- strsplit(current.file, '[.]')[[1]]\n  file.split.numbers <- strsplit(file.split[3], '[_]')[[1]]\n  \n  if(i <= 180 | i > 360 & i <= 540){\n    lidar.data.matrix[i,3] <- \"high\"\n  }  else{\n    lidar.data.matrix[i,3] <- \"low\"\n  }\n  \n  # add data to the analysis csv\n  lidar.data.matrix[i,1] <- file.split.numbers[3]\n  lidar.data.matrix[i,2] <- file.split.numbers[6]\n  lidar.data.matrix[i,4] <- mean(lidar.data$zmax, na.rm=T)\n  lidar.data.matrix[i,5] <- mean(lidar.data$zmean, na.rm=T)\n  lidar.data.matrix[i,6] <- mean(lidar.data$zsd, na.rm=T)\n  lidar.data.matrix[i,7] <- mean(lidar.data$zentropy, na.rm=T)\n  lidar.data.matrix[i,8] <- mean(lidar.data$pground, na.rm=T)\n}\n\n#Coerce the matrix into a data frame\ncollated.lidar.data <- data.frame(lidar.data.matrix, stringsAsFactors = FALSE)\ncolnames(collated.lidar.data) <- lidar.data.names\n\n# Write the data fram as a csv\nwrite.csv(collated.lidar.data, \"../Data/summary_data/lidar_summary_data_3.csv\")\n",
+    "created" : 1500484539554.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1791592870",
+    "id" : "A787BC85",
+    "lastKnownWriteTime" : 1506645284,
+    "last_content_update" : 1506645284295,
+    "path" : "~/lidar-scaling/code/summary_csv.R",
+    "project_path" : "summary_csv.R",
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

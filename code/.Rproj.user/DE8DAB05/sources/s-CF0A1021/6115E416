@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1524665912915.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "6115E416",
+    "lastKnownWriteTime" : 1524678766,
+    "last_content_update" : 1524678766,
+    "path" : "C:/Users/christineswanson/Dropbox/lidar-scaling/code/summary_csv.R",
+    "project_path" : "summary_csv.R",
+    "properties" : {
+        "cursorPosition" : "26,59",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

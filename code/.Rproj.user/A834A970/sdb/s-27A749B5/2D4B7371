@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "## Size matters: scaling effects on LiDAR interpretation in a neotropical rainforest\n## Code written by Christine Swanson\n## June 28, 2017\n\n# load appropriate libraries\nlibrary(lidR)\nlibrary(ggplot2)\nlibrary(dplyr)\n\n# set data paths\nin.path = \"../Data/las_files/merged\"\nout.path <- \"../Data/output\"\n\n# list all of the lidar files to be used\nfile.names <- dir(in.path, pattern = \".las\", full.names = TRUE)\n\n# vector of grid sizes for lidar metrics analysis\nraster_sizes <- c(5, 10, 15, 25, 30, 50, 60, 100, 120, 250, 500, 1000)\n\n# Calculate the lidar metrics\nfor(i in seq_along(file.names)){\n  # read in the current file\n  current.file <- file.names[i]\n  print(paste0(\"Working on: \", current.file))\n  lidar_in <- readLAS(current.file)\n  #calculate the dtm\n  dtm = grid_terrain(lidar_in, res = 5, method = \"knnidw\")\n  print(\"DTM finished\")\n  #remove ground points\n  las_norm <- lasnormalize(lidar_in, dtm)\n  print(\"Running normalized metrics\")\n  rm(lidar_in)\n  #normalize all points to 0\n  las_norm@data[Z  < 0, Z := 0]\n  minx <- las_norm@header@data[\"Min X\"]\n  miny <- las_norm@header@data[\"Min Y\"]\n  minx <- as.numeric(minx)\n  miny <- as.numeric(miny)\n  \n  las_filt <- las_norm %>% lasfilter(Z < 70)\n  rm(las_norm)\n  \n  for(j in seq_along(raster_sizes)){\n    # calculate the lidar metrics for each spatial resolution\n    print(paste0(\"Working on grid size: \", raster_sizes[j]))\n    normalized_metrics <- las_filt %>% grid_metrics(.stdmetrics, res = raster_sizes[j], start=c(minx, miny))\n    \n    # write out the raw data as a csv\n    write.csv(normalized_metrics, file=paste0(\"../data/output/filtered_output/normalized_metrics_\", i, \"_size_\", raster_sizes[j], \".csv\"))\n    \n  }\n\n}",
+    "created" : 1500484537463.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4283779419",
+    "id" : "2D4B7371",
+    "lastKnownWriteTime" : 1510173645,
+    "last_content_update" : 1510173645751,
+    "path" : "~/lidar-scaling/code/lidar_scaling.R",
+    "project_path" : "lidar_scaling.R",
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
