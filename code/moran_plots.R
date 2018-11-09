@@ -8,11 +8,12 @@ library(cowplot)
 rm(list = ls())
 
 # set data paths
-in.path = "D:/Dropbox/Dropbox/lidar-scaling/Data/summary_data/"
+in.path = "./Data/summary_data/"
 
 # list all of the data to be used
 file.names <- dir(in.path, pattern = "morans*", full.names = TRUE)
 
+# Split the file names so we can pull out information about high and low relief
 splits <- unlist(strsplit(file.names,"[.]"))
 
 splits <- splits[grepl("['/Data*]",splits)]
@@ -22,6 +23,7 @@ splits.num <- splits.num[!grepl("[su*]",splits.num)]
 splits.res <- splits.num[c(FALSE,TRUE)]
 splits.tiles <- splits.num[c(T,F)]
 
+# Create a data frame that stores the file names, tile number, and relief (high/low)
 lidar.dat.structure <- cbind(file.names,splits.tiles,splits.res)
 lidar.dat.structure <- as.data.frame(lidar.dat.structure)
 lidar.dat.structure$splits.tiles <- as.numeric(lidar.dat.structure$splits.tiles)
@@ -32,6 +34,7 @@ lidar.dat.structure$topo[136:270] <- "LOW"
 lidar.dat.structure$topo[271:405] <- "HIGH"
 lidar.dat.structure$topo[406:540] <- "LOW"
 
+##Filter out each resolution from the larger data frame
 lidar.10 <- lidar.dat.structure %>% filter(splits.res == 10)
 lidar.10$file.names <- as.character(lidar.10$file.names)
 lidar.100 <- lidar.dat.structure %>% filter(splits.res == 100)
@@ -51,8 +54,7 @@ lidar.50$file.names <- as.character(lidar.50$file.names)
 lidar.60 <- lidar.dat.structure %>% filter(splits.res == 60)
 lidar.60$file.names <- as.character(lidar.60$file.names)
 
-morans.mat <- matrix(ncol = 22, nrow = 9)
-
+## Create an empty data to include all of the Moran's I data
 dat <- data.frame(X = numeric(), dist = numeric(), zmax.Morans.i = numeric(), zmax.Null.lcl = numeric(), zmax.null.ucl = numeric(), zmax.Pvalue = numeric(),
                   zmean.Morans.i = numeric(), zmean.Null.lcl = numeric(), zmean.Null.ucl = numeric(), zmean.Pvalue = numeric(), zsd.Morans.i = numeric(),
                   zmsd.Null.lcl = numeric(), zsd.Null.ucl = numeric(), zsd.Pvalue = numeric(), zentropy.Morans.i = numeric(), zentropy.Null.lcl = numeric(),
@@ -60,13 +62,15 @@ dat <- data.frame(X = numeric(), dist = numeric(), zmax.Morans.i = numeric(), zm
                   pground.Pvalue = numeric())
 
 data.bind <- function(x,y){
+  #Function to put together Moran's I data and file name, tile number, resolution data
   for(i in 1:nrow(x)){
-  new.dat <- read.csv(x$file.names[i])
-  y <- rbind(y,new.dat)
+    new.dat <- read.csv(x$file.names[i])
+    y <- rbind(y,new.dat)
   }
   y
 }
 
+#Add Moran's I data to file name, tile number, resolution data for each resolution
 dat10 <- data.bind(lidar.10,dat)
 dat100 <- data.bind(lidar.100,dat)
 dat120 <- data.bind(lidar.120,dat)
@@ -77,6 +81,7 @@ dat30 <- data.bind(lidar.30,dat)
 dat50 <- data.bind(lidar.50,dat)
 dat60 <- data.bind(lidar.60,dat)
 
+#Change distance to a factor
 dat10$dist <- as.factor(dat10$dist)
 dat100$dist <- as.factor(dat100$dist)
 dat120$dist <- as.factor(dat120$dist)
@@ -87,10 +92,7 @@ dat30$dist <- as.factor(dat30$dist)
 dat50$dist <- as.factor(dat50$dist)
 dat60$dist <- as.factor(dat60$dist)
 
-mean.calc <- function(x){
-  aggregate(x[,3:22],list(x$dist),mean)
-}
-
+#Calculate the mean for each metric in the data frame
 mean10 <- mean.calc(dat10)
 mean100 <- mean.calc(dat100)
 mean120 <- mean.calc(dat120)
@@ -101,12 +103,12 @@ mean30 <- mean.calc(dat30)
 mean50 <- mean.calc(dat50)
 mean60 <- mean.calc(dat60)
 
-mean10$dist <- as.numeric(levels(mean10$Group.1))[mean10$Group.1]
-
 numeric.dist <- function(x){
+  #Function to change factors to numeric
   as.numeric(levels(x$Group.1))[x$Group.1]
 }
 
+#Change distance back to numeric
 mean10$dist <- numeric.dist(mean10)
 mean100$dist <- numeric.dist(mean100)
 mean120$dist <- numeric.dist(mean120)
@@ -117,6 +119,7 @@ mean30$dist <- numeric.dist(mean30)
 mean50$dist <- numeric.dist(mean50)
 mean60$dist <- numeric.dist(mean60)
 
+#Change mark the p-values as significant/non-significant; categorize the confidence envelopes as upper/lower
 plot.dat10 <- mean10 %>%
   mutate(p.max = zmax.Pvalue < 0.05) %>% 
   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
@@ -130,21 +133,6 @@ plot.dat10 <- mean10 %>%
   mutate(pground.conf = as.factor(ifelse(pground.Morans.i < pground.Null.lcl, -1,ifelse(pground.Morans.i > pground.Null.ucl, 1, 0)))) %>% 
   mutate(res = 10)
 
-plot.dat10.odd <- plot.dat10[seq(1,nrow(plot.dat10),2),]
-
-# plot.dat10 <- mean10 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 10)
-# 
-# plot.dat10.odd <- plot.dat10[seq(1,nrow(plot.dat10),2),]
 plot.dat100 <- mean100 %>%
   mutate(p.max = zmax.Pvalue < 0.05) %>% 
   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
@@ -157,42 +145,6 @@ plot.dat100 <- mean100 %>%
   mutate(zentropy.conf = as.factor(ifelse(zentropy.Morans.i < zentropy.Null.lcl, -1,ifelse(zentropy.Morans.i > zentropy.Null.ucl, 1, 0)))) %>% 
   mutate(pground.conf = as.factor(ifelse(pground.Morans.i < pground.Null.lcl, -1,ifelse(pground.Morans.i > pground.Null.ucl, 1, 0)))) %>% 
   mutate(res = 100)
-
-# plot.dat100 <- mean100 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 100)
-
-# plot.dat120 <- mean120 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 120)
-
-# plot.dat15 <- mean15 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 15)
 
 plot.dat25 <- mean25 %>%
   mutate(p.max = zmax.Pvalue < 0.05) %>% 
@@ -207,18 +159,6 @@ plot.dat25 <- mean25 %>%
   mutate(pground.conf = as.factor(ifelse(pground.Morans.i < pground.Null.lcl, -1,ifelse(pground.Morans.i > pground.Null.ucl, 1, 0)))) %>% 
   mutate(res = 25)
 
-# plot.dat25 <- mean25 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 25)
-
 plot.dat250 <- mean250 %>%
   mutate(p.max = zmax.Pvalue < 0.05) %>% 
   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
@@ -231,18 +171,6 @@ plot.dat250 <- mean250 %>%
   mutate(zentropy.conf = as.factor(ifelse(zentropy.Morans.i < zentropy.Null.lcl, -1,ifelse(zentropy.Morans.i > zentropy.Null.ucl, 1, 0)))) %>% 
   mutate(pground.conf = as.factor(ifelse(pground.Morans.i < pground.Null.lcl, -1,ifelse(pground.Morans.i > pground.Null.ucl, 1, 0)))) %>% 
   mutate(res = 250)
-
-# plot.dat30 <- mean30 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 30)
 
 plot.dat50 <- mean50 %>%
   mutate(p.max = zmax.Pvalue < 0.05) %>% 
@@ -257,173 +185,13 @@ plot.dat50 <- mean50 %>%
   mutate(pground.conf = as.factor(ifelse(pground.Morans.i < pground.Null.lcl, -1,ifelse(pground.Morans.i > pground.Null.ucl, 1, 0)))) %>% 
   mutate(res = 50)
 
-# plot.dat50 <- mean50 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 50)
-# 
-# plot.dat60 <- mean60 %>%
-#   #filter(dist < 1000*sqrt(2)) %>% 
-#   select(Lag.Distance = dist, Max.Height.Morans.I = zmax.Morans.i, Mean.Height.Morans.I = zmean.Morans.i, Rugosity.Morans.I = zsd.Morans.i, 
-#          Vertical.Diversity.Morans.I = zentropy.Morans.i, Openness.Morans.I = pground.Morans.i, zmax.Pvalue, zmean.Pvalue, zsd.Pvalue, 
-#          zentropy.Pvalue, pground.Pvalue) %>% 
-#   mutate(p.max = zmax.Pvalue < 0.05) %>% 
-#   mutate(p.mean = zmean.Pvalue < 0.05) %>% 
-#   mutate(p.rugosity = zsd.Pvalue < 0.05) %>% 
-#   mutate(p.vertical.diversity = zentropy.Pvalue < 0.05) %>% 
-#   mutate(p.openness = pground.Pvalue < 0.05) %>% 
-#   mutate(res = 60)
-
-#plot.dat120.zmax <- mean120 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 120)
-# plot.dat15.zmax <- mean15 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 15)
-# plot.dat25.zmax <- mean25 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 25)
-# plot.dat120.zmax <- mean120 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 120)
-# plot.dat250.zmax <- mean250 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 250)
-# plot.dat30.zmax <- mean30 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 30)
-# plot.dat50.zmax <- mean50 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 50)
-# plot.dat60.zmax <- mean60 %>%
-#   select(dist, Moran = zmax.Morans.i, zmax.Null.lcl, zmax.Null.ucl, p = zmax.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmax.Null.lcl, 1,
-#                                  ifelse(Moran > zmax.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 60)
-# 
-# 
-# ##########################
-# 
-# plot.dat100.zmean <- mean100 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 100)
-# plot.dat120.zmean <- mean120 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 120)
-# plot.dat15.zmean <- mean15 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 15)
-# plot.dat25.zmean <- mean25 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 25)
-# plot.dat120.zmean <- mean120 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 120)
-# plot.dat250.zmean <- mean250 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 250)
-# plot.dat30.zmean <- mean30 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 30)
-# plot.dat50.zmean <- mean50 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 50)
-# plot.dat60.zmean <- mean60 %>%
-#   select(dist, Moran = zmean.Morans.i, zmean.Null.lcl, zmean.Null.ucl, p = zmean.Pvalue) %>% 
-#   mutate(conf = as.factor(ifelse(Moran < zmean.Null.lcl, 1,
-#                                  ifelse(Moran > zmean.Null.lcl, 2, 3)))) %>% 
-#   mutate(p = p < 0.05) %>% 
-#   mutate(res = 60)
-# 
-# 
-# 
-# ggplot(plot.dat1,aes(x=dist, y=Moran)) +
-#   geom_point(aes(shape = conf, colour = p), size = 4) +
-#   geom_line(size = 1) +
-#   geom_hline(yintercept = 0) +
-#   scale_shape_manual(values=c(0,2,16))
-# 
-# dat1 <- mean60 %>%
-#   select(dist, Moran = zmax.Morans.i, p = zmax.Pvalue) %>%
-#   mutate(p = p < 0.05)
-# dat1
-# 
-# ggplot(dat1, aes(x=dist, y=Moran)) +
-#   geom_line(size=1) +
-#   geom_point(aes(shape = p), size=3) +
-#   geom_hline(yintercept = 0) +
-#   scale_shape_manual(values = c(1, 16))
-# 
-# dat2 <- mean50 %>% 
-#   select(dist,Moran = zmax.Morans.i, p = zmax.Pvalue) %>% 
-#   mutate(p = p < 0.05)
-# dat2$dist <- dat2$dist + 100
-# 
-# dat1$res <- 1
-# dat2$res <- 2
-
-dat.all <- bind_rows(plot.dat10.odd,plot.dat100, plot.dat120, plot.dat15, plot.dat25,plot.dat250, plot.dat30, plot.dat50, plot.dat60)
-
+#Keep the data that's going to be plotted
 dat.plot.sm <- rbind(plot.dat10.odd,plot.dat100,plot.dat25,plot.dat250,plot.dat50)
 
+#Change resolution into a factor
 dat.plot.sm$res <- as.factor(dat.plot.sm$res)
 
-cbbPalette <- c("#000000", "#009E73", "#e79f00", "#9ad0f3", "#0072B2", "#D55E00", "#CC79A7", "#F0E442", "#b66dff")
-cbbPalette.small <- c("#000000","#009E73","#e79f00","#0072B2","#b66dff")
-
+#Create a theme for ggplot
 theme_moran <- function (base_size = 12, base_family = "") {
   #theme_minimal(base_size = base_size, base_family = base_family) %+replace% 
   theme(
@@ -452,6 +220,7 @@ theme_moran <- function (base_size = 12, base_family = "") {
   )   
 }
 
+#Plot the Moran's I lines
 moran.maxh.env<-ggplot(dat.plot.sm, aes(x=dist, y=zmax.Morans.i, colour=res)) +
   geom_line(aes(group=res), size = 1) +
   geom_point(aes(shape = zmax.conf), size = 3) +
@@ -463,17 +232,6 @@ moran.maxh.env<-ggplot(dat.plot.sm, aes(x=dist, y=zmax.Morans.i, colour=res)) +
   labs(x = "Lag distance (m)", y = "Maximum canopy height")+
   annotate(geom="text",x=1000, y=0.63,label="Maximum canopy height", size=5) +
   ylim(-0.25,0.8)
-
-# moran.maxh<-ggplot(dat.small, aes(x=Lag.Distance, y=Max.Height.Morans.I, colour=res)) +
-#   geom_line(aes(group=res)) +
-#   geom_point(aes(shape = p.max), size = 3) +
-#   geom_hline(yintercept = 0) +
-#   theme_moran()+
-#   scale_shape_manual(values = c(1, 16), labels = c(">0.05", "<0.05"), name = "p-value")+
-#   scale_color_manual(values=cbbPalette.small, name = "Resolution (m)")+
-#   theme(legend.position="none", axis.title.x = element_blank(), axis.title.y = element_blank())+
-#   labs(x = "Lag distance (m)", y = "Maximum canopy height")+
-#   annotate(geom="text",x=1000, y=0.63,label="Maximum canopy height", size=5)
 
 moran.meanh.env<-ggplot(dat.plot.sm, aes(x=dist, y=zmean.Morans.i, colour=res)) +
   geom_line(aes(group=res), size = 1) +
@@ -487,17 +245,6 @@ moran.meanh.env<-ggplot(dat.plot.sm, aes(x=dist, y=zmean.Morans.i, colour=res)) 
   annotate(geom="text",x=1000, y=0.6,label="Mean canopy height", size=5)+
   ylim(-0.25,0.8)
 
-# moran.meanh<-ggplot(dat.small, aes(x=Lag.Distance, y=Mean.Height.Morans.I, colour=res)) +
-#   geom_line(aes(group=res)) +
-#   geom_point(aes(shape = p.mean), size = 3) +
-#   geom_hline(yintercept = 0) +
-#   theme_moran() +
-#   scale_shape_manual(values = c(1, 16)) +
-#   scale_color_manual(values=cbbPalette.small, name = "Resolution")+
-#   theme(legend.position="none", axis.title.x = element_blank(), axis.title.y = element_blank())+
-#   labs(x = "Lag distance (m)", y = "Mean canopy height") +
-#   annotate(geom="text",x=1000, y=0.6,label="Mean canopy height", size=5)
-
 moran.rug.env<-ggplot(dat.plot.sm, aes(x=dist, y=zsd.Morans.i, colour=res)) +
   geom_line(aes(group=res), size = 1) +
   geom_point(aes(shape = zsd.conf), size = 3) +
@@ -509,17 +256,6 @@ moran.rug.env<-ggplot(dat.plot.sm, aes(x=dist, y=zsd.Morans.i, colour=res)) +
   labs(x = "Lag distance (m)", y = "Mean canopy height")+
   annotate(geom="text",x=1000, y=0.54,label="Rugosity", size=5)+
   ylim(-0.25,0.8)
-
-# moran.rug<-ggplot(dat.small, aes(x=Lag.Distance, y=Rugosity.Morans.I, colour=res)) +
-#   geom_line(aes(group=res)) +
-#   geom_point(aes(shape = p.rugosity), size = 3) +
-#   geom_hline(yintercept = 0) +
-#   theme_moran() +
-#   scale_color_manual(values=cbbPalette.small, name = "Resolution")+
-#   theme(legend.position="none", axis.title.x=element_blank(), axis.title.y = element_blank())+
-#   scale_shape_manual(values = c(1, 16))+
-#   labs(x = "Lag distance (m)", y = "Rugosity") +
-#   annotate(geom="text",x=1000, y=0.54,label="Rugosity", size=5)
 
 moran.vertdiv.env<-ggplot(dat.plot.sm, aes(x=dist, y=zentropy.Morans.i, colour=res)) +
   geom_line(aes(group=res), size = 1) +
@@ -533,17 +269,6 @@ moran.vertdiv.env<-ggplot(dat.plot.sm, aes(x=dist, y=zentropy.Morans.i, colour=r
   annotate(geom="text",x=1000, y=0.4,label="Vertical diversity", size=5)+
   ylim(-0.25,0.8)
 
-# moran.vert.div <- ggplot(dat.small, aes(x=Lag.Distance, y=Vertical.Diversity.Morans.I, colour=res)) +
-#   geom_line(aes(group=res)) +
-#   geom_point(aes(shape = p.vertical.diversity), size = 3) +
-#   geom_hline(yintercept = 0) +
-#   theme_moran() +
-#   scale_shape_manual(values = c(1, 16)) +
-#   scale_color_manual(values=cbbPalette.small, name = "Resolution")+
-#   theme(legend.position="none", axis.title.x = element_blank(),axis.title.y=element_blank())+
-#   labs(x = "Lag distance (m)", y = "Vertical diversity") +
-#   annotate(geom = "text",x=1000, y=0.4, label = "Vertical diversity", size = 5)
-
 moran.open.env<-ggplot(dat.plot.sm, aes(x=dist, y=pground.Morans.i, colour=res)) +
   geom_line(aes(group=res), size = 1) +
   geom_point(aes(shape = pground.conf), size = 3) +
@@ -556,46 +281,18 @@ moran.open.env<-ggplot(dat.plot.sm, aes(x=dist, y=pground.Morans.i, colour=res))
   annotate(geom="text",x=1000, y=0.58,label="Canopy openness", size=5)+
   ylim(-0.25,0.8)
 
-# moran.open <- ggplot(dat.small, aes(x=Lag.Distance, y=Openness.Morans.I, colour=res)) +
-#   geom_line(aes(group=res)) +
-#   geom_point(aes(shape = p.openness), size = 3) +
-#   geom_hline(yintercept = 0) +
-#   theme_moran()+
-#   scale_shape_manual(values = c(1, 16), labels = c("p > 0.05", "p < 0.05"), name = "") +
-#   scale_color_manual(values=cbbPalette.small, name = "Resolution")+
-#   theme(legend.position = "none",axis.title.x = element_blank(),axis.title.y=element_blank())+
-#   labs(x = "Lag distance (m)", y = "Canopy openness") +
-#   annotate(geom="text", x=1000, y = 0.55, label = "Canopy openness", size=5)
-
+#Execute the plots and write to disk
 moran.maxh.env
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/Plots_For_John/moran_maxh.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./Images/moran_maxh.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 moran.meanh.env
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/Plots_For_John/moran_meanh.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./Images/moran_meanh.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 moran.rug.env
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/Plots_For_John/moran_rug.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./Images/moran_rug.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 moran.vertdiv.env
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/Plots_For_John/moran_vertdiv.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./Images/moran_vertdiv.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 moran.open.env
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/Plots_For_John/moran_open.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
-
-
-moran.plots <- ggarrange(moran.maxh.env, moran.meanh.env,moran.rug.env,moran.vertdiv.env,moran.open.env, labels = c("A","B","C","D","E"), 
-          label.x = c(0.7,0.7,0.7,0.7,0.7), label.y = c(0.95,0.95,0.95,0.95,0.95),font.label = list(size = 24),ncol = 3, 
-          nrow = 2, common.legend = T, legend = "right", align = "h")
-annotate_figure(moran.plots,bottom = text_grob("Lag distance (m)", size = 24), left = text_grob("Moran's I", size = 24, rot = 90))
-
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/morans.svg", plot = last_plot(), units = "in", width = 30, height = 15, dpi = 600)
-# dat.all.mean <- bind_rows(plot.dat100.zmean, plot.dat120.zmean, plot.dat15.zmean, plot.dat25.zmean, plot.dat250.zmean, plot.dat30.zmean, plot.dat50.zmean, plot.dat60.zmean)
-# 
-# plot(y=correlog.sp$Morans.i,x=correlog.sp$dist, xlab="Lag Distance(m)", ylab="Moran's I", ylim=c(-0.3,0.3)) #ylim provides limit on y-axis between -1 and 1
-# abline(h=0)#0 reference
-# lines(correlog.sp$dist, correlog.sp$Null.lcl,col = "red")	#add the null lcl to the plot
-# lines(correlog.sp$dist, correlog.sp$Null.ucl,col = "red")	#add the null ucl to the plot
-
-x<- c(10,100,1000,120,15,25,250,30,5,50,500,60)
-y<-c(0.844260386,0.810354397,0.717166819,0.810976732,0.856148052,0.85564255,0.799213295,0.852621885,0.780498492,0.838694368,0.769891651,0.838437896)
-xy<-as.data.frame(cbind(x,y))
+ggsave("./Images/moran_open.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)

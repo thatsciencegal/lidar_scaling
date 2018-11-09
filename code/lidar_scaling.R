@@ -8,8 +8,7 @@ library(ggplot2)
 library(dplyr)
 
 # set data paths
-in.path = "../Data/las_files/merged"
-out.path <- "../Data/output"
+in.path = "./Data/las_files/merged"
 
 # list all of the lidar files to be used
 file.names <- dir(in.path, pattern = ".las", full.names = TRUE)
@@ -27,7 +26,7 @@ for(i in seq_along(file.names)){
   dtm = grid_terrain(lidar_in, res = 5, method = "knnidw")
   print("DTM finished")
   #remove ground points
-  las_norm <- lasnormalize(lidar_in, dtm)
+  las_norm <- lasnormalize(lidar_in, dtm, copy=T)
   print("Running normalized metrics")
   rm(lidar_in)
   #normalize all points that are < 0 to 0
@@ -48,8 +47,8 @@ for(i in seq_along(file.names)){
     normalized_metrics <- las_filt %>% grid_metrics(.stdmetrics, res = raster_sizes[j], start=c(minx, miny))
     
     # write out the raw data as a csv
-    write.csv(normalized_metrics, file=paste0("../data/output/filtered_output/normalized_metrics_", i, "_size_", raster_sizes[j], ".csv"))
+    write.csv(normalized_metrics, file=paste0("./Data/output/filtered_output/normalized_metrics_", i, "_size_", raster_sizes[j], ".csv"))
     
   }
-
+  
 }

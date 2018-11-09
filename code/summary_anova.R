@@ -7,9 +7,9 @@ library(dplyr)
 library(car)
 
 #read in summary data
-lidar_summary <- read.csv("D:/Dropbox/Dropbox/lidar-scaling/Data/summary_data/lidar_summary_data_3.csv")
+lidar_summary <- read.csv("./Data/summary_data/lidar_summary_data_3.csv")
 
-#Mean and SD of mean canopy height and canopy opennedd
+#Mean and SD of mean canopy height and canopy openness
 can.mean <- mean(lidar_summary$mean_height)
 can.sd <- sd(lidar_summary$mean_height)
 

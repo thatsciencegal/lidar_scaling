@@ -2,7 +2,7 @@
 ## Code written by Christine Swanson
 ## July 10, 2017
 
-# This code is to write out the data to a summary csv
+# This code is to write out the lidar scaling data to a summary csv
 
 # set data paths
 in.path <- "../Data/output/filtered_output"
@@ -16,6 +16,7 @@ lidar.data.matrix <- matrix(ncol = 8, nrow = 720)
 lidar.data.names <- c("tile", "resolution", "topo", "max_height", "mean_height", "rugosity", 
                       "vertical_diversity", "openness") 
 
+#Specify the sizes for each raster length
 raster_sizes <- c(10, 1000, 120, 15, 250, 30, 5, 500, 60)
 
 for(i in seq_along(output.file.names)){
@@ -48,4 +49,4 @@ collated.lidar.data <- data.frame(lidar.data.matrix, stringsAsFactors = FALSE)
 colnames(collated.lidar.data) <- lidar.data.names
 
 # Write the data fram as a csv
-write.csv(collated.lidar.data, "../Data/summary_data/lidar_summary_data_3.csv")
+write.csv(collated.lidar.data, "./Data/summary_data/lidar_summary_data_3.csv")
