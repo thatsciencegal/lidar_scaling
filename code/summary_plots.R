@@ -125,19 +125,19 @@ theme_christine() +
 
 #Run and save the boxplots
 max_height_plot
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/max_height_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./lidar-scaling/Images/max_height_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 mean_height_plot
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/mean_height_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./lidar-scaling/Images/mean_height_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 rugosity_plot
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/rugosity_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./lidar-scaling/Images/rugosity_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 vertical_diversity_plot
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/vertical_diversity_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./lidar-scaling/Images/vertical_diversity_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 openness_plot
-ggsave("D:/Dropbox/Dropbox/lidar-scaling/Images/openness_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
+ggsave("./lidar-scaling/Images/openness_plot.jpg", plot = last_plot(), units = "in", width = 9, height = 6, dpi = 600)
 
 
 ##Raster of different metrics for an example plot at a 25x25 m scale
