@@ -9,4 +9,20 @@ Within bat-files, you can find files used to process lidar data in the US Forest
 Within the SLURM folder, you will find SLURM for running the Moran's I code in a supercomputer.
 
 The code folder contains all of the lidar analyses done in R.
-*Start with 
+
+
+* Start with the lidar_scaling.R file. This file allows you to run the initial scaling code.
+* The summary_csv.R file allows you to summarize all of the lidar_scaling.R output into a single .csv file.
+* lidar_morans.R runs all of the Moran's I analyses.
+* summary_anova contains the code to do the significance testing.
+* summary_plots.R has all of the plotting code, except for the Moran's I plots. Those can be created with the moran_plots.R code. Also, summary_plots.R contains the code to run the correlation analyses and make the corresponding plots.
+* las_norm.R is not required to run. It was used to normalize the las files stored in the data repository. This same code can be found at the beginning of the lidar_scaling.R file.
+* lidar_plot.R is not required either. It allows you to visualize each lidar tile.
+
+## Important - lidar_scaling.r
+
+If data was downloaded from the accompanying repository, you must skip all of the normalizing steps in the for loop. The data in the repository have already been normalized.
+
+**Remove lines 25-31 and rename "lidar_in" to "las_norm" in line 24** If you do not do this, the code may return incorrect data from the lidar.
+
+Please direct any questions about the code to christineswanson@ufl.edu or @thatsciencegal on Twitter.
