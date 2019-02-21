@@ -23,7 +23,8 @@ The code folder contains all of the lidar analyses done in R.
 ## Important - lidar_scaling.r
 
 If data was downloaded from the accompanying repository, you must skip all of the normalizing steps in the for loop. The data in the repository have already been normalized.
-
+ 
 **Remove lines 25-31 and rename "lidar_in" to "las_norm" in line 24** If you do not do this, the code may return incorrect data from the lidar.
+**As of 2/21/19, lidR has been updated, and the code is no longer compatible with the new version. Some changes must be made to get the code to run with the newest version of this package.**
 
 Please direct any questions about the code to christineswanson@ufl.edu or @thatsciencegal on Twitter.
