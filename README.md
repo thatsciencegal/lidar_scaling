@@ -18,6 +18,7 @@ The code folder contains all of the lidar analyses done in R.
 * summary_plots.R has all of the plotting code, except for the Moran's I plots. Those can be created with the moran_plots.R code. Also, summary_plots.R contains the code to run the correlation analyses and make the corresponding plots.
 * las_norm.R is not required to run. It was used to normalize the las files stored in the data repository. This same code can be found at the beginning of the lidar_scaling.R file.
 * lidar_plot.R is not required either. It allows you to visualize each lidar tile.
+* lidar_slope_calc.R calculates slope and doing the regression analyses related to slope
 
 ## Important - lidar_scaling.r
 
